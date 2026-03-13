@@ -108,18 +108,18 @@ def fetch_availabilities(
             "status_code": None,
         }
     text = resp.text
-    if resp.status_code != 200:
-        logger.warning("HTTP %s from Doctolib", resp.status_code)
-        return {
-            "ok": False,
-            "error": f"HTTP {resp.status_code}",
-            "status_code": resp.status_code,
-        }
     if _is_cloudflare_response(text):
         logger.warning("Cloudflare/challenge detected in response")
         return {
             "ok": False,
             "error": "Cloudflare/challenge detected",
+            "status_code": resp.status_code,
+        }
+    if resp.status_code != 200:
+        logger.warning("HTTP %s from Doctolib", resp.status_code)
+        return {
+            "ok": False,
+            "error": f"HTTP {resp.status_code}",
             "status_code": resp.status_code,
         }
     try:
