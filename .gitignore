@@ -1,0 +1,9 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+config.yaml
+.env
+*.egg-info/
+doctowatch.log
+*.log

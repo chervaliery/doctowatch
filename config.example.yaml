@@ -1,0 +1,24 @@
+# Copy to config.yaml and set MJ_APIKEY_PUBLIC and MJ_APIKEY_PRIVATE in the environment.
+# See README for how to get practice_ids, agenda_ids, visit_motive_ids from Doctolib.
+
+mailjet:
+  from_email: "alerts@example.com"
+  to_emails: ["you@example.com"]
+
+watchers:
+  - name: "Dr. Example (City)"
+    practice_ids: "12345"
+    agenda_ids: "67890"
+    visit_motive_ids: [111222]
+    telehealth: false
+    # Optional: add the doctor's Doctolib booking page for clickable link in notifications
+    booking_url: "https://www.doctolib.fr/speciality/city/doctor-name/booking/availabilities"
+  - name: "Dr. Another (Town)"
+    practice_ids: "99999"
+    agenda_ids: "88888"
+    visit_motive_ids: [333444]
+    telehealth: false
+    booking_url: "https://www.doctolib.fr/speciality/town/another-doctor/booking/availabilities"
+
+interval_seconds: 300
+limit: 5
