@@ -51,6 +51,8 @@ You need `practice_ids`, `agenda_ids`, and `visit_motive_ids` for each doctor yo
 
 You can also inspect the booking page URL: parameters like `placeId=practice-52101` give `practice_ids=52101`, and `motiveIds[]=904826` gives `visit_motive_ids=904826`. The `agenda_ids` usually appear in the `availabilities.json` request.
 
+Sometimes the API returns `total: 0` and empty `slots` for the requested window but includes a `next_slot` field (ISO datetime) for the next bookable appointment. The monitor automatically requests again with `start_date` set to that datetime’s calendar date (up to 10 follow-up requests per check) so slots in a later range are still detected.
+
 ## Configuration
 
 Edit `config.yaml`:
@@ -65,6 +67,7 @@ Edit `config.yaml`:
   - `visit_motive_ids`: list of motive IDs (e.g. `[904826]`).
   - `telehealth`: optional, default `false`.
   - `booking_url`: optional; the doctor’s Doctolib booking page. If set, a clickable link is included in both “slot available” and “script issue” emails.
+  - `notify_if_slot_on_or_before`: optional; ISO date `YYYY-MM-DD`. If set, an availability email is sent only when at least one returned slot falls on or before this date (if every slot is strictly later, no email). If omitted, any reported slot triggers an email as before.
 - **interval_seconds**: seconds between each full check (default 300). Ignored when using `--once`.
 - **limit**: number of days of slots to request from the API (default 5).
 - **start_date**: optional; default is today (YYYY-MM-DD).
@@ -109,7 +112,7 @@ Activate the venv first (`source .venv/bin/activate`), then:
 
 ## Notifications
 
-- **Slot available**: one email per watcher when at least one slot is found. Subject: `Doctolib: slot available – <watcher name>`. If you set `booking_url` for that watcher, a “Doctor page / Book here” link is included (clickable in HTML).
+- **Slot available**: one email per watcher when at least one slot is found (subject to `notify_if_slot_on_or_before` if set). Subject: `Doctolib: slot available – <watcher name>`. The body lists **available slots** (times/dates from the API) when they can be parsed; if the API reports slots but details are missing, a short note is shown instead. If you set `booking_url` for that watcher, a “Doctor page / Book here” link is included (clickable in HTML).
 - **Script issue**: one email when a check fails (non-200, Cloudflare/challenge, invalid JSON, timeout, etc.). Subject: `Doctolib monitor: script issue`. Body includes watcher name (if applicable), error summary, HTTP status when relevant, and a “Doctor page” link when `booking_url` is set.
 
 ## License

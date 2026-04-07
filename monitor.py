@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Doctolib availability monitor: poll availabilities and send SendGrid emails
+Doctolib availability monitor: poll availabilities and send Mailjet emails
 on slot available or script issue.
 """
 from __future__ import annotations
@@ -9,12 +9,12 @@ import argparse
 import logging
 import sys
 import time
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import yaml
 
-from doctolib import fetch_availabilities
+from doctolib import analyze_availabilities, fetch_availabilities, format_availabilities_fr_for_email
 from notify import send_availability_email, send_script_issue_email
 
 logger = logging.getLogger(__name__)
@@ -39,6 +39,20 @@ def normalize_watcher(w: dict) -> dict:
     visit_motive_ids = w.get("visit_motive_ids") or []
     if isinstance(visit_motive_ids, (int, str)):
         visit_motive_ids = [visit_motive_ids]
+    notify_cutoff: date | None = None
+    cutoff_raw = w.get("notify_if_slot_on_or_before")
+    if cutoff_raw is not None:
+        try:
+            if isinstance(cutoff_raw, datetime):
+                notify_cutoff = cutoff_raw.date()
+            elif isinstance(cutoff_raw, date):
+                notify_cutoff = cutoff_raw
+            elif isinstance(cutoff_raw, str):
+                notify_cutoff = date.fromisoformat(cutoff_raw.strip())
+            else:
+                logger.warning("Watcher '%s': notify_if_slot_on_or_before must be YYYY-MM-DD.", name)
+        except ValueError:
+            logger.warning("Watcher '%s': invalid notify_if_slot_on_or_before %r.", name, cutoff_raw)
     return {
         "name": name,
         "practice_ids": practice_ids,
@@ -46,6 +60,7 @@ def normalize_watcher(w: dict) -> dict:
         "visit_motive_ids": list(visit_motive_ids),
         "telehealth": w.get("telehealth", False),
         "booking_url": w.get("booking_url"),
+        "notify_cutoff": notify_cutoff,
     }
 
 
@@ -95,6 +110,18 @@ def run_once(config: dict) -> None:
                 logger.error("Failed to send script-issue email: %s", err)
             continue
         if result.get("available"):
+            should_notify, _ = analyze_availabilities(
+                result.get("availabilities", []),
+                w.get("notify_cutoff"),
+                int(result.get("total") or 0),
+            )
+            if not should_notify:
+                logger.info(
+                    "Slots for '%s' are all after notify_if_slot_on_or_before; skipping email.",
+                    w["name"],
+                )
+                continue
+            slot_plain, slot_html = format_availabilities_fr_for_email(result.get("availabilities", []))
             logger.info("Slots available for '%s' (total=%s)", w["name"], result.get("total", 0))
             logger.info("Sending availability email for '%s'", w["name"])
             ok, err = send_availability_email(
@@ -103,6 +130,8 @@ def run_once(config: dict) -> None:
                 watcher_name=w["name"],
                 total=result.get("total", 0),
                 booking_url=w.get("booking_url"),
+                slot_lines=slot_plain,
+                slot_html=slot_html or None,
             )
             if ok:
                 logger.info("Availability email sent for '%s'", w["name"])

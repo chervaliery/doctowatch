@@ -11,13 +11,17 @@ watchers:
     agenda_ids: "67890"
     visit_motive_ids: [111222]
     telehealth: false
+    # Optional: only send an availability email if at least one slot is on or before this date
+    # (if all slots are strictly after this date, no email). Omit to notify for any slot.
+    # notify_if_slot_on_or_before: "2026-12-31"
     # Optional: add the doctor's Doctolib booking page for clickable link in notifications
-    booking_url: "https://www.doctolib.fr/speciality/city/doctor-name/booking/availabilities"
+    # booking_url: "https://www.doctolib.fr/speciality/city/doctor-name/booking/availabilities"
   - name: "Dr. Another (Town)"
     practice_ids: "99999"
     agenda_ids: "88888"
     visit_motive_ids: [333444]
     telehealth: false
+    notify_if_slot_on_or_before: "2026-12-31"
     booking_url: "https://www.doctolib.fr/speciality/town/another-doctor/booking/availabilities"
 
 interval_seconds: 300
